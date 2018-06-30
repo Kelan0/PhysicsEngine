@@ -6,6 +6,7 @@ import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -36,6 +37,11 @@ public class Vertex
     public Vertex(Vector3f position, Vector3f normal)
     {
         this(position, normal, new Vector2f(), new Vector4f(1.0F, 1.0F, 1.0F, 1.0F));
+    }
+
+    public Vertex(Vector3f position, Vector2f texture)
+    {
+        this(position, new Vector3f(), texture, new Vector4f(1.0F, 1.0F, 1.0F, 1.0F));
     }
 
     public Vertex(Vector3f position)
@@ -85,7 +91,12 @@ public class Vertex
 
     public float[] getData(Transformation transformation)
     {
-        return getData(transformation, null);
+        return getData(transformation, ShaderDataLocations.getDefaultDataLocations());
+    }
+
+    public float[] getData(Transformation transformation, ShaderDataLocations attributes)
+    {
+        return getData(transformation, attributes == null ? null : attributes.vertexFormat);
     }
 
     public float[] getData(Transformation transformation, String format)

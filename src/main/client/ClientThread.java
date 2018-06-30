@@ -1,5 +1,7 @@
 package main.client;
 
+import main.client.rendering.screen.FrameBuffer;
+import main.client.rendering.screen.ScreenRenderer;
 import main.core.Engine;
 import main.core.TickableThread;
 import main.core.input.InputContext;
@@ -20,9 +22,9 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class ClientThread extends TickableThread
 {
-    private int windowWidth = 800;
-    private int windowHeight = 600;
     private long window;
+
+    private InputContext inputContext = new InputContext(0);
     private InputHandler inputHandler;
     private GLFWErrorCallback errorCallback;
     private GLFWWindowSizeCallback windowSizeCallback;
@@ -33,7 +35,10 @@ public class ClientThread extends TickableThread
     private boolean drawGeometry = true;
     private boolean drawWireframe = false;
     private Vector4f wireframeColour = new Vector4f(0.08F, 0.08F, 0.08F, 1.0F);
-    private InputContext inputContext = new InputContext(0);
+
+    private ScreenRenderer screenRenderer;
+    private int windowWidth = 800;
+    private int windowHeight = 600;
 
     public ClientThread()
     {
@@ -65,13 +70,17 @@ public class ClientThread extends TickableThread
     {
         System.out.println("Initializing render engine");
 
+        screenRenderer = new ScreenRenderer();
+
         errorCallback = GLFWErrorCallback.createPrint(System.err);
         windowSizeCallback = new GLFWWindowSizeCallback()
         {
             @Override
             public void invoke(long window, int w, int h)
             {
-                glViewport(0, 0, windowWidth = w, windowHeight = h);
+                windowWidth = w;
+                windowHeight = h;
+                screenRenderer.onScreenResized();
             }
         };
 
@@ -92,7 +101,7 @@ public class ClientThread extends TickableThread
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         System.out.println("Creating window");
-        window = glfwCreateWindow(800, 600, "hello :D", 0L, 0L);
+        window = glfwCreateWindow(windowWidth, windowHeight, "hello :D", 0L, 0L);
 
         if (window <= 0)
             return false;
@@ -107,7 +116,11 @@ public class ClientThread extends TickableThread
         glfwSwapInterval(0);
         glfwShowWindow(window);
 
+        screenRenderer.init();
         Engine.getSceneGraph().init();
+
+        setWindowSize(windowWidth, windowHeight);
+
         return true;
     }
 
@@ -119,21 +132,23 @@ public class ClientThread extends TickableThread
         inputHandler.addContext(inputContext);
         inputHandler.update();
 
-        glClearColor(0.12F, 0.09F, 0.48F, 1.0F);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         if (glfwWindowShouldClose(window))
             Engine.getInstance().stop();
+
+        screenRenderer.bindScreenBuffer();
 
         Engine.getSceneGraph().render(delta);
         Engine.getGame().render(delta);
 
+        FrameBuffer.unbind();
+        screenRenderer.render(delta);
         return true;
     }
 
     @Override
-    protected boolean destroy()
+    protected boolean dispose()
     {
+        screenRenderer.dispose();
         Engine.getSceneGraph().dispose();
 
         glfwFreeCallbacks(window);
@@ -199,6 +214,11 @@ public class ClientThread extends TickableThread
         return inputHandler;
     }
 
+    public ScreenRenderer getScreenRenderer()
+    {
+        return screenRenderer;
+    }
+
     public ClientThread setUpdateDelta(double updateDelta)
     {
         synchronized (getLock())
@@ -232,10 +252,10 @@ public class ClientThread extends TickableThread
 
         GLFWVidMode videoMode = glfwGetVideoMode(monitor > 0L ? monitor : glfwGetPrimaryMonitor());
 
-        int screenWidth = videoMode == null ? windowWidth : videoMode.width();
-        int screenHeight = videoMode == null ? windowHeight : videoMode.height();
+        int screenWidth = videoMode == null ? getWindowWidth() : videoMode.width();
+        int screenHeight = videoMode == null ? getWindowHeight() : videoMode.height();
 
-        setWindowPos((screenWidth - windowWidth) / 2, (screenHeight - windowHeight) / 2);
+        setWindowPos((screenWidth - getWindowWidth()) / 2, (screenHeight - getWindowHeight()) / 2);
 
         return this;
     }

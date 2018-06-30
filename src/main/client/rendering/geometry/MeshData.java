@@ -105,15 +105,15 @@ public class MeshData
         return this;
     }
 
-    public FloatBuffer getVertexBufferData(FloatBuffer vertexBuffer)
+    public FloatBuffer getVertexBufferData(FloatBuffer vertexBuffer, ShaderDataLocations attributes)
     {
         synchronized (this.getVertices())
         {
             if (vertexBuffer == null)
-                vertexBuffer = BufferUtils.createFloatBuffer(this.getVertexBufferSize());
+                vertexBuffer = BufferUtils.createFloatBuffer(this.getVertexBufferSize(attributes));
 
             for (Vertex vertex : this.getVertices())
-                vertexBuffer.put(vertex.getData(this.getTransformationOffset()));
+                vertexBuffer.put(vertex.getData(this.getTransformationOffset(), attributes));
 
             vertexBuffer.flip();
 
@@ -147,9 +147,14 @@ public class MeshData
         return this.getIndices() != null ? this.getIndices().size() : 0;
     }
 
+    public synchronized int getVertexBufferSize(ShaderDataLocations attributes)
+    {
+        return this.getNumVertices() * (attributes.stride / Float.BYTES);
+    }
+
     public synchronized int getVertexBufferSize()
     {
-        return this.getNumVertices() * (Vertex.BYTES / Float.BYTES);
+        return getVertexBufferSize(ShaderDataLocations.getDefaultDataLocations());
     }
 
     public synchronized int getIndexBufferSize()

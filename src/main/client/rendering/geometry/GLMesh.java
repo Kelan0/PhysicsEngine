@@ -35,12 +35,12 @@ public class GLMesh
         else
             this.attributes = attributes;
 
-        this.createBuffers();
+        createBuffers();
 
         if (meshData != null)
         {
-            this.allocateBuffers(meshData.getNumVertices(), meshData.getNumIndices());
-            this.uploadMeshData(meshData);
+            allocateBuffers(meshData.getNumVertices(), meshData.getNumIndices());
+            uploadMeshData(meshData);
         }
     }
 
@@ -61,9 +61,9 @@ public class GLMesh
 
     private void createBuffers()
     {
-        this.vertexArray = glGenVertexArrays();
-        this.vertexBuffer = glGenBuffers();
-        this.indexBuffer = glGenBuffers();
+        vertexArray = glGenVertexArrays();
+        vertexBuffer = glGenBuffers();
+        indexBuffer = glGenBuffers();
     }
 
     public GLMesh uploadMeshData(MeshData meshData)
@@ -72,27 +72,27 @@ public class GLMesh
 
         if (meshData != null)
         {
-            glBindVertexArray(this.vertexArray);
+            glBindVertexArray(vertexArray);
 
             if (meshData.hasVertices())
             {
-                FloatBuffer vertexBufferData = meshData.getVertexBufferData(this.vertexData);
-                glBindBuffer(GL_ARRAY_BUFFER, this.vertexBuffer);
-                glBufferSubData(GL_ARRAY_BUFFER, this.vertexCount * Vertex.BYTES, vertexBufferData);
-                this.vertexCount += meshData.getNumVertices();
+                FloatBuffer vertexBufferData = meshData.getVertexBufferData(vertexData, attributes);
+                glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * Vertex.BYTES, vertexBufferData);
+                vertexCount += meshData.getNumVertices();
             }
 
             if (meshData.hasIndices())
             {
-                IntBuffer indexBufferData = meshData.getIndexBufferData(this.indexData);
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, this.indexCount * Integer.BYTES, indexBufferData);
-                this.indexCount += meshData.getNumIndices();
+                IntBuffer indexBufferData = meshData.getIndexBufferData(indexData);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, indexCount * Integer.BYTES, indexBufferData);
+                indexCount += meshData.getNumIndices();
             }
 
-            this.attributes.enableVertexAttributes();
-            this.attributes.bindVertexAttributes();
-            this.attributes.disableVertexAttributes();
+            attributes.enableVertexAttributes();
+            attributes.bindVertexAttributes();
+            attributes.disableVertexAttributes();
 
             glBindVertexArray(0);
         }
@@ -102,25 +102,25 @@ public class GLMesh
 
     public GLMesh allocateBuffers(long vertexCapacity, long indexCapacity)
     {
-        this.reset();
+        reset();
 
-        glBindVertexArray(this.vertexArray);
+        glBindVertexArray(vertexArray);
 
         this.vertexCapacity = vertexCapacity;
         this.indexCapacity = indexCapacity;
 
-        this.vertexData = BufferUtils.createFloatBuffer((int) vertexCapacity * (Vertex.BYTES / Float.BYTES));
-        this.indexData = BufferUtils.createIntBuffer((int) indexCapacity);
+        vertexData = BufferUtils.createFloatBuffer((int) vertexCapacity * (Vertex.BYTES / Float.BYTES));
+        indexData = BufferUtils.createIntBuffer((int) indexCapacity);
 
-        glBindBuffer(GL_ARRAY_BUFFER, this.vertexBuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, vertexCapacity * Vertex.BYTES, GL_DYNAMIC_DRAW);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCapacity * Integer.BYTES, GL_DYNAMIC_DRAW);
 
-        this.attributes.enableVertexAttributes();
-        this.attributes.bindVertexAttributes();
-        this.attributes.disableVertexAttributes();
+        attributes.enableVertexAttributes();
+        attributes.bindVertexAttributes();
+        attributes.disableVertexAttributes();
         glBindVertexArray(0);
 
         return this;
@@ -128,15 +128,15 @@ public class GLMesh
 
     public GLMesh allocateBuffers(FloatBuffer vertexBuffer, IntBuffer indexBuffer)
     {
-        this.reset();
+        reset();
 
-        glBindVertexArray(this.vertexArray);
+        glBindVertexArray(vertexArray);
 
-        this.vertexCapacity = vertexBuffer.capacity() / (Vertex.BYTES / Float.BYTES);
-        this.indexCapacity = indexBuffer.capacity();
+        vertexCapacity = vertexBuffer.capacity() / (Vertex.BYTES / Float.BYTES);
+        indexCapacity = indexBuffer.capacity();
 
-        this.vertexData = vertexBuffer;
-        this.indexData = indexBuffer;
+        vertexData = vertexBuffer;
+        indexData = indexBuffer;
 
         glBindBuffer(GL_ARRAY_BUFFER, this.vertexBuffer);
         glBufferData(GL_ARRAY_BUFFER, vertexCapacity * Vertex.BYTES, GL_DYNAMIC_DRAW);
@@ -144,9 +144,9 @@ public class GLMesh
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexCapacity * Integer.BYTES, GL_DYNAMIC_DRAW);
 
-        this.attributes.enableVertexAttributes();
-        this.attributes.bindVertexAttributes();
-        this.attributes.disableVertexAttributes();
+        attributes.enableVertexAttributes();
+        attributes.bindVertexAttributes();
+        attributes.disableVertexAttributes();
         glBindVertexArray(0);
 
         return this;
@@ -154,33 +154,33 @@ public class GLMesh
 
     public GLMesh reset()
     {
-        if (this.vertexData != null)
-            this.vertexData.clear();
+        if (vertexData != null)
+            vertexData.clear();
 
-        if (this.indexData != null)
-            this.indexData.clear();
+        if (indexData != null)
+            indexData.clear();
 
-        this.vertexCount = 0;
-        this.indexCount = 0;
+        vertexCount = 0;
+        indexCount = 0;
 
         return this;
     }
 
     public GLMesh draw()
     {
-        glBindVertexArray(this.vertexArray);
+        glBindVertexArray(vertexArray);
 
-        this.attributes.enableVertexAttributes();
+        attributes.enableVertexAttributes();
 
-        if (this.vertexCount > 0)
+        if (vertexCount > 0)
         {
-            if (this.indexCount > 0)
-                glDrawElements(GL_TRIANGLES, (int) this.indexCount, GL_UNSIGNED_INT, 0);
+            if (indexCount > 0)
+                glDrawElements(GL_TRIANGLES, (int) indexCount, GL_UNSIGNED_INT, 0);
             else
-                glDrawArrays(GL_TRIANGLES, 0, (int) this.vertexCount);
+                glDrawArrays(GL_TRIANGLES, 0, (int) vertexCount);
         }
 
-        this.attributes.disableVertexAttributes();
+        attributes.disableVertexAttributes();
 
         glBindVertexArray(0);
 
@@ -189,9 +189,9 @@ public class GLMesh
 
     public void dispose()
     {
-        glDeleteBuffers(this.vertexBuffer);
-        glDeleteBuffers(this.indexBuffer);
-        glDeleteVertexArrays(this.vertexArray);
+        glDeleteBuffers(vertexBuffer);
+        glDeleteBuffers(indexBuffer);
+        glDeleteVertexArrays(vertexArray);
     }
 
     public long getVertexCapacity()

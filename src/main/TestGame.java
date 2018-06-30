@@ -12,9 +12,13 @@ import main.core.input.components.FlyController;
 import main.core.scene.GameObject;
 import main.core.scene.SceneGraph;
 import main.core.scene.Transformation;
+import main.core.util.MathUtils;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
+import java.nio.FloatBuffer;
+import java.util.Random;
 
 import static org.lwjgl.opengl.GL20.*;
 
@@ -69,11 +73,12 @@ public class TestGame extends GameHandler
         super.update(delta);
     }
 
-    private void createPhysicsObject(String name, GameObject parent, Transformation transformation, MeshData mesh, ShaderProgram shaderProgram, boolean staticObject)
+    private GameObject createPhysicsObject(String name, GameObject parent, Transformation transformation, MeshData mesh, ShaderProgram shaderProgram, boolean staticObject)
     {
         GameObject gameObject = new GameObject(transformation);
         gameObject.addComponent("meshRenderer", new MeshRenderer(mesh, shaderProgram));
         parent.addChild(name, gameObject);
+        return gameObject;
     }
 
     public static void main(String[] args)

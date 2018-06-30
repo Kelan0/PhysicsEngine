@@ -29,7 +29,7 @@ public class PhysicsThread extends TickableThread
     }
 
     @Override
-    protected boolean destroy()
+    protected boolean dispose()
     {
         return true;
     }

@@ -13,12 +13,14 @@ public class ShaderDataLocations
     public int stride;
     public InputLocation[] inputs;
     public OutputLocation[] outputs;
+    public String vertexFormat;
 
-    public ShaderDataLocations(int stride, InputLocation[] inputs, OutputLocation[] outputs)
+    public ShaderDataLocations(int stride, InputLocation[] inputs, OutputLocation[] outputs, String vertexFormat)
     {
         this.stride = stride;
         this.inputs = inputs;
         this.outputs = outputs;
+        this.vertexFormat = vertexFormat;
     }
 
     public void enableVertexAttributes()
@@ -47,8 +49,20 @@ public class ShaderDataLocations
                 new InputLocation("vertexTexture", 2, 2, 24),
                 new InputLocation("vertexColour", 3, 4, 32),
         }, new OutputLocation[]{
+                new OutputLocation("outDiffuse", 0),
+                new OutputLocation("outNormal", 1),
+                new OutputLocation("outSpecular", 2),
+        }, "pppnnnttcccc");
+    }
+
+    public static ShaderDataLocations getGuiDataLocations()
+    {
+        return new ShaderDataLocations(20, new InputLocation[]{
+                new InputLocation("vertexPosition", 0, 3, 0),
+                new InputLocation("vertexTexture", 1, 2, 12),
+        }, new OutputLocation[]{
                 new OutputLocation("outColour", 0),
-        });
+        }, "ppptt");
     }
 
     public static class InputLocation

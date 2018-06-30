@@ -1,8 +1,5 @@
 package main.core;
 
-import main.core.Engine;
-import main.core.LogHandler;
-
 /**
  * @author Kelan
  */
@@ -80,7 +77,7 @@ public abstract class TickableThread implements Runnable
 
         synchronized (getLock())
         {
-            destroy();
+            dispose();
             running = false;
             getLock().notifyAll();
         }
@@ -158,7 +155,7 @@ public abstract class TickableThread implements Runnable
 
     protected abstract boolean update(double delta);
 
-    protected abstract boolean destroy();
+    protected abstract boolean dispose();
 
     public abstract double getUpdateDelta();
 
