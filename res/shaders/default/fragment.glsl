@@ -12,6 +12,7 @@ uniform bool wireframe;
 
 out vec4 outDiffuse;
 out vec3 outNormal;
+out vec3 outPosition;
 out float outSpecular;
 
 
@@ -19,5 +20,6 @@ void main(void)
 {
     outDiffuse = colourMultiplier * p_vertexColour;
     outNormal = p_vertexNormal;
+    outPosition = p_worldPosition.xyz;
     outSpecular = 0.0;
 }

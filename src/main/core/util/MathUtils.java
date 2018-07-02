@@ -927,4 +927,9 @@ public class MathUtils
     {
         return new Vector4f(colour.getRed() / 255.0F, colour.getGreen() / 255.0F, colour.getBlue() / 255.0F, colour.getAlpha() / 255.0F);
     }
+
+    public static int gcd(int a, int b)
+    {
+        return b == 0 ? a : gcd(b, a % b);
+    }
 }

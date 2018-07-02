@@ -51,7 +51,8 @@ public class ShaderDataLocations
         }, new OutputLocation[]{
                 new OutputLocation("outDiffuse", 0),
                 new OutputLocation("outNormal", 1),
-                new OutputLocation("outSpecular", 2),
+                new OutputLocation("outPosition", 2),
+                new OutputLocation("outSpecular", 3),
         }, "pppnnnttcccc");
     }
 

@@ -4,6 +4,7 @@ import main.client.rendering.MeshRenderer;
 import main.client.rendering.ShaderProgram;
 import main.client.rendering.geometry.MeshData;
 import main.client.rendering.geometry.MeshHelper;
+import main.client.rendering.geometry.OBJModel;
 import main.client.rendering.geometry.ShaderDataLocations;
 import main.core.Engine;
 import main.core.GameHandler;
@@ -12,13 +13,15 @@ import main.core.input.components.FlyController;
 import main.core.scene.GameObject;
 import main.core.scene.SceneGraph;
 import main.core.scene.Transformation;
-import main.core.util.MathUtils;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.util.vector.Vector3f;
 
 import java.io.IOException;
-import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 
 import static org.lwjgl.opengl.GL20.*;
 
@@ -47,6 +50,8 @@ public class TestGame extends GameHandler
             ShaderProgram program = new ShaderProgram(ShaderDataLocations.getDefaultDataLocations(), vertex, fragment);
 
 
+            MeshData mesh = OBJModel.parseObj("res/models/bunny/bunny.obj").compileMesh();
+            createPhysicsObject("sponza", root, new Transformation(new Vector3f(0.0F, 1.1F, 0.0F), new Vector3f(0.333F, 0.333F, 0.333F)), mesh, program, true);
             createPhysicsObject("floor", root, new Transformation(), MeshHelper.createCuboid(-floorSize, -1.0F, -floorSize, +floorSize, 0.0F, +floorSize), program, true);
             createPhysicsObject("cube", root, new Transformation(new Vector3f(0.0F, 0.5F, 0.0F)), MeshHelper.createCuboid(-0.5F, +0.5F), program, true);
         } catch (IOException e)

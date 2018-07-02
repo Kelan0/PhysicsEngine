@@ -16,10 +16,10 @@ public class Vertex
 {
     public static final int BYTES = 48;
 
-    private Vector3f position;
-    private Vector3f normal;
-    private Vector2f texture;
-    private Vector4f colour;
+    Vector3f position;
+    Vector3f normal;
+    Vector2f texture;
+    Vector4f colour;
 
     public Vertex(Vector3f position, Vector3f normal, Vector2f texture, Vector4f colour)
     {

@@ -19,6 +19,7 @@ import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
@@ -211,19 +212,19 @@ public class ShaderProgram
         return true;
     }
 
-    private static boolean checkShaderStatus(int shader, int parameter)
+    private static boolean checkShaderStatus(int shader, int type, int parameter)
     {
         if (glGetShaderi(shader, parameter) == GL_FALSE)
         {
-            System.err.println("Failed to create shader " + shader + "\n" + getShaderLog(shader));
+            System.err.println("Failed to create shader " + shader + "\n" + getShaderLog(shader, type));
             return false;
         }
         return true;
     }
 
-    private static String getShaderLog(int shader)
+    private static String getShaderLog(int shader, int type)
     {
-        return getShaderName(shader) + ": " + glGetShaderInfoLog(shader, glGetShaderi(shader, GL_INFO_LOG_LENGTH));
+        return getShaderName(type) + ": " + glGetShaderInfoLog(shader, glGetShaderi(shader, GL_INFO_LOG_LENGTH));
     }
 
     private static String getProgramLog(int program)
@@ -307,7 +308,7 @@ public class ShaderProgram
             glShaderSource(this.shaderID, this.source);
             glCompileShader(this.shaderID);
 
-            if (checkShaderStatus(this.shaderID, GL_COMPILE_STATUS))
+            if (checkShaderStatus(this.shaderID, this.type, GL_COMPILE_STATUS))
             {
                 glAttachShader(shaderProgram.programID, this.shaderID);
             } else
@@ -324,6 +325,28 @@ public class ShaderProgram
         {
             glDetachShader(shaderProgram.programID, this.shaderID);
             glDeleteShader(this.shaderID);
+        }
+
+        public void define(String identifier, Function<String, String> function)
+        {
+            StringBuilder newSource = new StringBuilder();
+            identifier = identifier.trim();
+
+            String[] lines = source.split("\n");
+
+            for (int i = 0; i < lines.length; i++)
+            {
+                String line = lines[i].trim();
+
+                if (line.startsWith("#define " + identifier))
+                {
+                    line = line.substring(0, ("#define " + identifier).length()) + " " + function.apply(line.substring(("#define " + identifier).length())).trim();
+                }
+
+                newSource.append(line).append("\n");
+            }
+
+            source = newSource.toString();
         }
     }
 }

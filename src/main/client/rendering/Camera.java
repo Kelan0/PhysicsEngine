@@ -41,7 +41,7 @@ public class Camera extends Component
 
     public Camera(Transformation transformationOffset)
     {
-        this(transformationOffset, 0.1F, 10000.0F, 90.0F);
+        this(transformationOffset, 0.001F, 1000.0F, 90.0F);
     }
 
     public Camera(float near, float far, float fov)
@@ -56,18 +56,17 @@ public class Camera extends Component
 
     public Camera(float fov)
     {
-        this(new Transformation(), 0.1F, 10000.0F, fov);
+        this(new Transformation(), 0.001F, 1000.0F, fov);
     }
 
     public Camera()
     {
-        this(new Transformation(), 0.1F, 10000.0F, 90.0F);
+        this(new Transformation(), 0.001F, 1000.0F, 90.0F);
     }
 
     @Override
     public void render(double delta)
     {
-        this.near = 0.25F;
         float aspect = Engine.getClientThread().getWindowAspectRatio();
         float tangent = (float) (1.0 / Math.tan(Math.toRadians(this.fov * 0.5)));
 
@@ -158,10 +157,15 @@ public class Camera extends Component
         Matrix4f projectionMatrix = this.getProjectionMatrix();
 
         if (viewMatrix != null)
+        {
             shaderProgram.setUniformMatrix4f("viewMatrix", viewMatrix);
+            shaderProgram.setUniformVector3f("cameraDirection", new Vector3f(viewMatrix.m20, viewMatrix.m21, viewMatrix.m22));
+        }
 
         if (projectionMatrix != null)
+        {
             shaderProgram.setUniformMatrix4f("projectionMatrix", projectionMatrix);
+        }
 
         shaderProgram.setUniformVector1f("Fcoef", (float) (2.0 / (Math.log(this.far + 1.0) / Math.log(2.0)))); // For logarithmic depth buffer.
         shaderProgram.setUniformVector1f("nearPlane", this.near);

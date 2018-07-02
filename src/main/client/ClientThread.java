@@ -13,9 +13,16 @@ import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.util.vector.Vector4f;
 
-import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntFunction;
+import java.util.function.IntToDoubleFunction;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+
+import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
 
 /**
  * @author Kelan
@@ -113,7 +120,6 @@ public class ClientThread extends TickableThread
         System.out.println("Finalizing window");
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
-        glfwSwapInterval(0);
         glfwShowWindow(window);
 
         screenRenderer.init();
@@ -124,9 +130,110 @@ public class ClientThread extends TickableThread
         return true;
     }
 
+
+    private List<Double> frames = new ArrayList<>();
+    private int counter = 0;
+    private long a;
+    private DecimalFormat df = new DecimalFormat("0.000");
+
     @Override
     protected boolean update(double delta)
     {
+        frames.add(1.0 / delta);
+        counter++;
+        if (System.nanoTime() - a > 1000000000)
+        {
+            long t0 = System.nanoTime();
+            int indexCount = (int) (frames.size() * 0.01);
+            int[] lowIndices = new int[indexCount];
+            int[] highIndices = new int[indexCount];
+
+            for (int i = 0; i < indexCount; i++)
+                lowIndices[i] = highIndices[i] = -1;
+
+            for (int i = 0; i < indexCount; i++)
+            {
+                int curLowIndex = lowIndices[i];
+                int curHighIndex = highIndices[i];
+
+                for (int j = 0; j < frames.size(); j++)
+                {
+                    if (curLowIndex == -1 || frames.get(j) < frames.get(curLowIndex))
+                    {
+                        boolean flag = true;
+
+                        if (curLowIndex != -1)
+                        {
+                            for (int index : lowIndices)
+                            {
+                                if (index == j)
+                                {
+                                    flag = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (flag)
+                            curLowIndex = j;
+                    }
+                    if (curHighIndex == -1 || frames.get(j) > frames.get(curHighIndex))
+                    {
+                        boolean flag = true;
+
+                        if (curHighIndex != -1)
+                        {
+                            for (int index : highIndices)
+                            {
+                                if (index == j)
+                                {
+                                    flag = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (flag)
+                            curHighIndex = j;
+                    }
+                }
+
+                lowIndices[i] = curLowIndex;
+                highIndices[i] = curHighIndex;
+            }
+
+            double avg = 0.0;
+            double p1l = 0.0;
+            double p1h = 0.0;
+
+            for (int i = frames.size() - counter; i < frames.size(); i++)
+            {
+                double frame = frames.get(i);
+                avg += frame;
+            }
+
+            for (int i = 0; i < indexCount; i++)
+            {
+                p1l += frames.get(lowIndices[i]);
+                p1h += frames.get(highIndices[i]);
+            }
+
+            avg /= counter;
+            p1l /= indexCount;
+            p1h /= indexCount;
+
+            while (frames.size() > 10000)
+                frames.remove(0);
+
+
+            a = System.nanoTime();
+            setWindowTitle("Window: avg fps = " + df.format(avg) + ", 1% low = " + df.format(p1l) + ", 1% high = " + df.format(p1h));
+
+            System.out.println("Took " + (a - t0) / 1000000.0 + "ms to calculate 1% low/high for " + frames.size() + " frames");
+            counter = 0;
+        }
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(0);
         glfwSwapBuffers(window);
 
         inputHandler.addContext(inputContext);
@@ -228,6 +335,7 @@ public class ClientThread extends TickableThread
 
         return this;
     }
+
     public ClientThread setWindowSize(int w, int h)
     {
         glfwSetWindowSize(window, w, h);
