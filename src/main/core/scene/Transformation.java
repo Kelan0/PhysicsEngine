@@ -127,4 +127,10 @@ public class Transformation
     {
         return Objects.hash(translation, rotation, scale);
     }
+
+    @Override
+    public String toString()
+    {
+        return "Transformation{" + "translation=" + translation + ", rotation=" + rotation + ", scale=" + scale + '}';
+    }
 }

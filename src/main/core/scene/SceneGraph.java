@@ -7,6 +7,7 @@ import main.client.rendering.ShaderProgram;
 import main.core.Engine;
 import main.core.input.components.FlyController;
 import main.physics.ITickable;
+import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -14,6 +15,7 @@ import java.util.Objects;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.GL_MULTISAMPLE;
+import static org.lwjgl.opengl.GL14.*;
 
 /**
  * @author Kelan
@@ -33,7 +35,9 @@ public class SceneGraph implements ITickable, IRenderable
 
     protected GameObject createPlayerObject()
     {
-        GameObject player = new GameObject();
+        Vector3f position = new Vector3f(-0.41631278F, -0.04009331F, -0.14944725F);
+        Quaternion rotation = new Quaternion(-0.18059678F, -0.37671292F, -0.075138204F, 0.90544266F);
+        GameObject player = new GameObject(new Transformation(position, rotation));
 
         player.addComponent("camera", new Camera(new Transformation(new Vector3f(0.0F, 2.0F, 2.0F))));
         player.addComponent("controller", new FlyController());
@@ -88,47 +92,43 @@ public class SceneGraph implements ITickable, IRenderable
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         this.player.render(delta);
-
         ClientThread clientThread = Engine.getClientThread();
         boolean drawWireframe = clientThread.doDrawWireframe();
         boolean drawGeometry = clientThread.doDrawGeometry();
         boolean antialiasing = clientThread.isAntialiasingEnabled();
 
-        if (antialiasing)
+//        if (antialiasing)
+//        {
+//            glEnable(GL_MULTISAMPLE);
+//            glEnable(GL_LINE_SMOOTH);
+//            glEnable(GL_POLYGON_SMOOTH);
+//            glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+//            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+//        }
+
+        if (drawGeometry)
         {
-            glEnable(GL_MULTISAMPLE);
-            glEnable(GL_LINE_SMOOTH);
-            glEnable(GL_POLYGON_SMOOTH);
-            glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+            clientThread.setDrawWireframe(false);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glDisable(GL_POLYGON_OFFSET_FILL);
+            glDisable(GL_BLEND);
+            glBlendFunc(GL_ONE, GL_ZERO);
+            this.world.render(delta);
+            this.root.render(delta);
+            clientThread.setDrawWireframe(drawWireframe);
         }
-
-        world.render(delta);
-        root.render(delta);
-
-//        if (drawGeometry)
-//        {
-//            clientThread.setDrawWireframe(false);
-//            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-//            glDisable(GL_POLYGON_OFFSET_FILL);
-//            glEnable(GL_BLEND);
-//            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//            this.world.render(delta);
-//            this.root.render(delta);
-//            clientThread.setDrawWireframe(drawWireframe);
-//        }
-//        if (drawWireframe)
-//        {
-//            clientThread.setDrawGeometry(false);
-//            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-//            glEnable(GL_POLYGON_OFFSET_FILL);
-//            glEnable(GL_BLEND);
-//            glPolygonOffset(2.0F, 2.0F);
-//            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//            this.world.render(delta);
-//            this.root.render(delta);
-//            clientThread.setDrawGeometry(drawGeometry);
-//        }
+        if (drawWireframe)
+        {
+            clientThread.setDrawGeometry(false);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            glEnable(GL_BLEND);
+            glPolygonOffset(2.0F, 2.0F);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            this.world.render(delta);
+            this.root.render(delta);
+            clientThread.setDrawGeometry(drawGeometry);
+        }
     }
 
     @Override

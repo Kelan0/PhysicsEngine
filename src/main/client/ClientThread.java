@@ -16,10 +16,6 @@ import org.lwjgl.util.vector.Vector4f;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntFunction;
-import java.util.function.IntToDoubleFunction;
-import java.util.stream.DoubleStream;
-import java.util.stream.IntStream;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -41,7 +37,7 @@ public class ClientThread extends TickableThread
     private boolean antialiasingEnabled = true;
     private boolean drawGeometry = true;
     private boolean drawWireframe = false;
-    private Vector4f wireframeColour = new Vector4f(0.08F, 0.08F, 0.08F, 1.0F);
+    private Vector4f wireframeColour = new Vector4f(0.9F, 0.9F, 0.9F, 1.0F);
 
     private ScreenRenderer screenRenderer;
     private int windowWidth = 800;
@@ -54,6 +50,7 @@ public class ClientThread extends TickableThread
         this.inputContext.registerAction("toggleDrawWireframe", () -> {
             setDrawWireframe(!doDrawWireframe());
 
+            wireframeColour = new Vector4f(0.08F, 0.08F, 0.08F, 1.0F);
             if (!doDrawWireframe())
                 setDrawGeometry(true);
 
@@ -63,6 +60,7 @@ public class ClientThread extends TickableThread
             if (!doDrawWireframe())
                 return false;
 
+            wireframeColour = new Vector4f(0.9F, 0.9F, 0.9F, 1.0F);
             setDrawGeometry(!doDrawGeometry());
             return true;
         });

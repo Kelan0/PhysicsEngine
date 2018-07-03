@@ -25,6 +25,7 @@ uniform int ssaoSamples;
 uniform ivec2 screenResolution;
 uniform ivec2 ssaoNoiseSize;
 uniform float ssaoRadius;
+uniform float ssaoTextureScale;
 uniform sampler2DMS diffuseTexture;
 uniform sampler2DMS normalTexture;
 uniform sampler2DMS positionTexture;
@@ -62,11 +63,14 @@ void main(void)
         {
             for (int j = -ssaoBlurRadius; j <= ssaoBlurRadius; j++)
             {
-                ssao += texture2D(ssaoTexture, p_vertexTexture + vec2(i, j) / ssaoSize).r;
+                ssao += texture2D(ssaoTexture, (p_vertexTexture * ssaoTextureScale) + vec2(i, j) / ssaoSize).r;
             }
         }
 
         ssao /= ((ssaoBlurRadius * 2 + 1) * (ssaoBlurRadius * 2 + 1));
+    } else
+    {
+        ssao = 1.0;
     }
 
     for (int i = 0; i < max(1, msaaSamples); i++)
@@ -80,8 +84,9 @@ void main(void)
 
     normal = (vec4(normalize(normal), 0.0)).xyz;
 
-    float nDotL = clamp(dot(normal, -lightDirection), 0.1, 1.0);
+    float nDotL = clamp(dot(normal, -lightDirection), 0.4, 1.0);
 
-    outColour = vec4(vec3(diffuse * nDotL) - vec3(ssao), 1.0);//vec4(diffuse.rgb * nDotL, 1.0);
-//    outColour = vec4(vec3(1.0 - ssao), 1.0);//vec4(diffuse.rgb * nDotL, 1.0);
+    outColour = vec4(vec3(diffuse * nDotL * ssao), 1.0);//vec4(diffuse.rgb * nDotL, 1.0);
+//    outColour = vec4(vec3(position), 1.0);//vec4(diffuse.rgb * nDotL, 1.0);
+//    outColour = vec4(vec3(ssao), 1.0);//vec4(diffuse.rgb * nDotL, 1.0);
 }

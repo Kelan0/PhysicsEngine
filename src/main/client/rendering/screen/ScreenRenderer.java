@@ -52,11 +52,13 @@ public class ScreenRenderer implements IRenderable
     private boolean msaaFixedLocations = true;
     private int msaaSamples = 4;
     private int ssaoSamples = 64;
-    private float ssaoRadius = 0.6F;
+    private float ssaoRadius = 1.5F;
+    private float ssaoOffset = 0.0F;
+    private float ssaoTextureScale = 1.0F;
     private int workGroupSizeX;
     private int workGroupSizeY;
 
-    private int ssaoNoiseSize = 128;
+    private int ssaoNoiseSize = 32;
     private int ssaoNoiseTexture;
     private int ssaoSamplesTexture;
 
@@ -70,7 +72,7 @@ public class ScreenRenderer implements IRenderable
     {
         initBuffers();
         initShaders();
-        setAmbientOcclusionSamples(64, new Random());
+        setAmbientOcclusionSamples(40, new Random());
 
         if (guiQuad != null)
             guiQuad.dispose();
@@ -168,12 +170,16 @@ public class ScreenRenderer implements IRenderable
     @Override
     public void render(double delta)
     {
-        if (Engine.getInputHandler().keyPressed(GLFW_KEY_F2))
+        if (Engine.getInputHandler().keyPressed(GLFW_KEY_F3))
             ambientOcclusion = !ambientOcclusion;
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         glDisable(GL_CULL_FACE);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glBlendFunc(GL_ONE, GL_ZERO);
 
         int windowWidth = Engine.getClientThread().getWindowWidth();
         int windowHeight = Engine.getClientThread().getWindowHeight();
@@ -189,6 +195,7 @@ public class ScreenRenderer implements IRenderable
 
         screenShader.setUniformVector2f("quadPosition", 0.0F, 0.0F);
         screenShader.setUniformVector2f("quadSize", 1.0F, 1.0F);
+        screenShader.setUniformVector1f("ssaoTextureScale", ssaoTextureScale);
         screenShader.setUniformVector2i("screenResolution", windowWidth, windowHeight);
         screenShader.setUniformVector1i("diffuseTexture", 0);
         screenShader.setUniformVector1i("normalTexture", 1);
@@ -243,7 +250,9 @@ public class ScreenRenderer implements IRenderable
 
         ssaoShader.setUniformVector1i("ssaoSamples", ssaoSamples);
         ssaoShader.setUniformVector1f("ssaoRadius", ssaoRadius);
+        ssaoShader.setUniformVector1f("ssaoOffset", ssaoOffset);
         ssaoShader.setUniformVector1i("ssaoNoiseSize", ssaoNoiseSize);
+        ssaoShader.setUniformVector1f("ssaoTextureScale", ssaoTextureScale);
         ssaoShader.setUniformVector1i("ssaoNoiseTexture", 0);
         ssaoShader.setUniformVector1i("ssaoSamplesTexture", 1);
         ssaoShader.setUniformVector1i("normalTexture", 2);
@@ -268,7 +277,7 @@ public class ScreenRenderer implements IRenderable
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, deferredDepthTexture);
 
         glBindImageTexture(0, ssaoTexture, 0, false, 0, GL_WRITE_ONLY, GL_R32F);
-        glDispatchCompute((int) Math.ceil((float) windowWidth / workGroupSizeX), (int) Math.ceil((float) windowHeight / workGroupSizeY), 1);
+        glDispatchCompute((int) Math.ceil((windowWidth * ssaoTextureScale) / workGroupSizeX), (int) Math.ceil((windowHeight * ssaoTextureScale) / workGroupSizeY), 1);
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
         glFinish();
 
@@ -315,7 +324,7 @@ public class ScreenRenderer implements IRenderable
         glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
         glBindTexture(GL_TEXTURE_2D, ssaoTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, (ByteBuffer) null);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, (int) (width), (int) (height), 0, GL_RED, GL_FLOAT, (ByteBuffer) null);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -383,7 +392,7 @@ public class ScreenRenderer implements IRenderable
         FloatBuffer sampleBuffer = BufferUtils.createFloatBuffer(ssaoSamples * 3);
         for (int i = 0; i < ssaoSamples; i++)
         {
-            Vector3f sample = new Vector3f(rand.nextFloat() * 2.0F - 1.0F, rand.nextFloat() * 2.0F - 1.0F, rand.nextFloat() * 2.0F - 1.0F);
+            Vector3f sample = new Vector3f(rand.nextFloat() * 2.0F - 1.0F, rand.nextFloat() * 2.0F - 1.0F, rand.nextFloat());
             float scale = (float) i / ssaoSamples;
             scale = MathUtils.interpolate(0.1, 1.0, scale * scale);
             sample.normalise().scale(rand.nextFloat() * scale);

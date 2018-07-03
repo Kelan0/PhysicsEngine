@@ -1,6 +1,5 @@
 package main;
 
-import main.core.util.MathUtils;
 import org.lwjgl.util.vector.Vector2f;
 
 import javax.swing.*;
@@ -52,11 +51,14 @@ public class Test extends JPanel
         Graphics2D g2 = (Graphics2D) g;
 
         g2.setColor(Color.RED);
-        g2.setStroke(new BasicStroke(3.0F));
+        g2.setStroke(new BasicStroke(1.0F));
 
         for (int i = 0; i < samples.length; i++)
         {
-            g2.fillOval((int) (cx + samples[i].x * r) - 3, (int) (cy + samples[i].y * r) - 3, 6, 6);
+            int x = (int) (cx + samples[i].x * r);
+            int y = (int) (cy + samples[i].y * r);
+            g2.drawLine(cx, cy, x, y);
+            g2.fillOval(x - 3, y - 3, 6, 6);
         }
 
         g2.setColor(Color.DARK_GRAY);
