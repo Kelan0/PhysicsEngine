@@ -74,7 +74,7 @@ public class StringUtils
     {
         try
         {
-            Float.parseFloat(str);
+            Float.parseFloat(str.trim());
             return true;
         } catch (NumberFormatException e)
         {

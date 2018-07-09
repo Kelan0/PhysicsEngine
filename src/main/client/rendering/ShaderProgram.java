@@ -180,12 +180,23 @@ public class ShaderProgram
         return buf;
     }
 
-    public void delete()
+    public void dispose()
     {
         for (Shader shader : this.shaders)
             shader.delete(this);
 
         glDeleteProgram(this.programID);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ShaderProgram{" +
+                "programID=" + programID +
+                ", dataLocations=" + dataLocations +
+                ", shaders=" + shaders +
+                ", uniforms=" + uniforms +
+                '}';
     }
 
     public static void bind(ShaderProgram shaderProgram)
@@ -347,6 +358,14 @@ public class ShaderProgram
             }
 
             source = newSource.toString();
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Shader{" +
+                    "file=" + file +
+                    '}';
         }
     }
 }

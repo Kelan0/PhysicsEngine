@@ -18,6 +18,8 @@ uniform vec3 cameraDirection;
 uniform float nearPlane;
 uniform float farPlane;
 
+uniform bool drawWireframe;
+uniform bool drawGeometry;
 uniform int ssaoSamples;
 uniform float ssaoRadius;
 uniform float ssaoOffset;
@@ -64,38 +66,39 @@ mat3 getNormalMatrix(vec3 normal, vec3 rotation)
 
 void main(void)
 {
-    const vec2 textureCoord = vec2(gl_GlobalInvocationID.xy) / (ssaoTextureScale * screenResolution);
-
-    const vec3 position = getPosition(textureCoord);
-    const vec3 normal = getNormal(textureCoord);
-    const vec3 offset = getRandomOffset(textureCoord);
-
-    const mat3 tbn = getNormalMatrix(normal, offset);
-    const float r = ssaoRadius;
-
     float ao = 0.0;
 
-    vec4 samplePosition;
-    vec4 screenSample;
-    vec3 sampleDepth;
-    float distSq;
-
-    for (int i = 0; i < ssaoSamples; i++)
+    if (drawGeometry)
     {
-        samplePosition = vec4(position + tbn * texelFetch(ssaoSamplesTexture, i, 0).xyz, 1.0);
-        screenSample = projectionMatrix * samplePosition;
-        screenSample.xyz = (screenSample.xyz / screenSample.w) * vec3(0.5) + vec3(0.5);
+        const vec2 textureCoord = vec2(gl_GlobalInvocationID.xy) / (ssaoTextureScale * screenResolution);
 
-        sampleDepth = getPosition(screenSample.xy);
-        distSq = dot(samplePosition.xyz - sampleDepth, samplePosition.xyz - sampleDepth);
+        const vec3 position = getPosition(textureCoord);
+        const vec3 normal = getNormal(textureCoord);
+        const vec3 offset = getRandomOffset(textureCoord);
 
-//        if (samplePosition.z + ssaoBias < sampleDepth.z)
-//            if (distSq < r * r)
-//                ao += smoothstep(0.0, 1.0, r / abs(samplePosition.z - sampleDepth.z)) * (1.0 / (1.0 + sqrt(distSq)));
-        ao += distSq < r * r && samplePosition.z + ssaoBias < sampleDepth.z ? 1.0 : 0.0;
+        const mat3 tbn = getNormalMatrix(normal, offset);
+        const float r = ssaoRadius;
+
+        vec4 samplePosition;
+        vec4 screenSample;
+        vec3 sampleDepth;
+        float distSq;
+
+        for (int i = 0; i < ssaoSamples; i++)
+        {
+            samplePosition = vec4(position + tbn * texelFetch(ssaoSamplesTexture, i, 0).xyz, 1.0);
+            screenSample = projectionMatrix * samplePosition;
+            screenSample.xyz = (screenSample.xyz / screenSample.w) * vec3(0.5) + vec3(0.5);
+
+            sampleDepth = getPosition(screenSample.xy);
+            distSq = dot(samplePosition.xyz - sampleDepth, samplePosition.xyz - sampleDepth);
+
+    //        if (samplePosition.z + ssaoBias < sampleDepth.z)
+    //            if (distSq < r * r)
+    //                ao += smoothstep(0.0, 1.0, r / abs(samplePosition.z - sampleDepth.z)) * (1.0 / (1.0 + sqrt(distSq)));
+            ao += distSq < r * r && samplePosition.z + ssaoBias < sampleDepth.z ? 1.0 : 0.0;
+        }
     }
 
-    ao = 1.0 - (ao / ssaoSamples);
-
-    imageStore(ssaoTexture, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(ao), 1.0));
+    imageStore(ssaoTexture, ivec2(gl_GlobalInvocationID.xy), vec4(vec3(1.0 - (ao / ssaoSamples)), 1.0));
 }

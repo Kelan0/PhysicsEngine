@@ -23,6 +23,7 @@ public class Camera extends Component
     private float near;
     private float far;
     private float fov;
+    private float aspect;
 
     private Matrix4f projectionMatrix = new Matrix4f();
     private Matrix4f viewMatrix = new Matrix4f();
@@ -30,44 +31,50 @@ public class Camera extends Component
     private Vector4f[] frustum = new Vector4f[6];
     private GLMesh frustumMesh;
 
-    public Camera(Transformation transformationOffset, float near, float far, float fov)
+    public Camera(Transformation transformationOffset, float near, float far, float fov, float aspect)
     {
         this.transformationOffset = transformationOffset;
 
         this.near = near;
         this.far = far;
         this.fov = fov;
+        this.aspect = aspect;
+    }
+
+    public Camera(Transformation transformationOffset, float near, float far, float fov)
+    {
+        this(transformationOffset, near, far, fov, -1.0F);
     }
 
     public Camera(Transformation transformationOffset)
     {
-        this(transformationOffset, 0.001F, 1000.0F, 90.0F);
+        this(transformationOffset, 0.03F, 1000.0F, 90.0F, -1.0F);
     }
 
     public Camera(float near, float far, float fov)
     {
-        this(new Transformation(), near, far, fov);
+        this(new Transformation(), near, far, fov, -1.0F);
     }
 
     public Camera(float near, float far)
     {
-        this(new Transformation(), near, far, 90.0F);
+        this(new Transformation(), near, far, 90.0F, -1.0F);
     }
 
     public Camera(float fov)
     {
-        this(new Transformation(), 0.001F, 1000.0F, fov);
+        this(new Transformation(), 0.001F, 1000.0F, fov, -1.0F);
     }
 
     public Camera()
     {
-        this(new Transformation(), 0.001F, 1000.0F, 90.0F);
+        this(new Transformation(), 0.001F, 1000.0F, 90.0F, -1.0F);
     }
 
     @Override
     public void render(double delta)
     {
-        float aspect = Engine.getClientThread().getWindowAspectRatio();
+        float aspect = getAspect() <= 0.0F ? Engine.getClientThread().getWindowAspectRatio() : getAspect();
         float tangent = (float) (1.0 / Math.tan(Math.toRadians(this.fov * 0.5)));
 
         float right = this.near / tangent * aspect;
@@ -142,6 +149,12 @@ public class Camera extends Component
 
             this.updateFrustum(viewProjection);
         }
+    }
+
+    @Override
+    public void render(double delta, ShaderProgram shaderProgram)
+    {
+
     }
 
     @Override
@@ -330,7 +343,7 @@ public class Camera extends Component
 
     public Vector3f getPositionWithOffset()
     {
-        return Vector3f.add(this.getPosition(), this.getPositionOffset(), null);
+        return Vector3f.add(getPosition(), getPositionOffset(), null);
     }
 
     public Vector3f getPositionOffset()
@@ -340,12 +353,12 @@ public class Camera extends Component
 
     public Vector3f getPosition()
     {
-        return this.getParent().getTransformation().getTranslation();
+        return getParent() != null ? getParent().getTransformation().getTranslation() : new Vector3f();
     }
 
     public Quaternion getRotationWithOffset()
     {
-        return Quaternion.mul(this.getRotation(), this.getRotationOffset(), null);
+        return Quaternion.mul(getRotation(), getRotationOffset(), null);
     }
 
     public Quaternion getRotationOffset()
@@ -355,12 +368,32 @@ public class Camera extends Component
 
     public Quaternion getRotation()
     {
-        return this.getParent().getTransformation().getRotation();
+        return getParent() != null ? getParent().getTransformation().getRotation() : new Quaternion();
     }
 
-    public Vector3f getLookVector()
+    public Vector3f getAxisX()
+    {
+        return new Vector3f(this.viewMatrix.m00, this.viewMatrix.m01, this.viewMatrix.m02);
+    }
+
+    public Vector3f getAxisY()
+    {
+        return new Vector3f(this.viewMatrix.m10, this.viewMatrix.m11, this.viewMatrix.m12);
+    }
+
+    public Vector3f getAxisZ()
     {
         return new Vector3f(this.viewMatrix.m20, this.viewMatrix.m21, this.viewMatrix.m22);
+    }
+
+    public float getAspect()
+    {
+        return aspect;
+    }
+
+    public void setAspect(float aspect)
+    {
+        this.aspect = aspect;
     }
 
     public Vector3f getPickingVector(Vector2f position)

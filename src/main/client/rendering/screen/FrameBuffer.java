@@ -7,6 +7,7 @@ import java.nio.IntBuffer;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL32.*;
 
 /**
  * @author Kelan
@@ -18,6 +19,11 @@ public class FrameBuffer
     public FrameBuffer()
     {
         this.frameBufferID = glGenFramebuffers();
+    }
+
+    public FrameBuffer(int frameBufferID)
+    {
+        this.frameBufferID = frameBufferID;
     }
 
     public void bind(int width, int height)
@@ -32,14 +38,19 @@ public class FrameBuffer
         glViewport(0, 0, Engine.getClientThread().getWindowWidth(), Engine.getClientThread().getWindowHeight());
     }
 
+    public void setDrawBuffers(IntBuffer buffer)
+    {
+        glDrawBuffers(buffer);
+    }
+
     public void setDrawBuffers(int buffer)
     {
         glDrawBuffer(buffer);
     }
 
-    public void setDrawBuffers(IntBuffer buffer)
+    public void setReadBuffers(int buffer)
     {
-        glDrawBuffers(buffer);
+        glReadBuffer(buffer);
     }
 
     public void dispose()
@@ -93,5 +104,48 @@ public class FrameBuffer
     public int getFrameBufferID()
     {
         return frameBufferID;
+    }
+
+    public void checkStatus()
+    {
+        StringBuilder message = new StringBuilder("Checking framebuffer status: ");
+
+        int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        switch (status)
+        {
+            case GL_FRAMEBUFFER_UNDEFINED:
+                message.append("GL_FRAMEBUFFER_UNDEFINED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                message.append("GL_FRAMEBUFFER_UNSUPPORTED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+                message.append("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS");
+                break;
+            case GL_FRAMEBUFFER_COMPLETE:
+                message.append("GL_FRAMEBUFFER_COMPLETE");
+                break;
+            default:
+                message.append("Unexpected reply from glCheckFramebufferStatus, " + status);
+                break;
+        }
+
+        if (message.length() > 0)
+            System.out.println(message);
     }
 }

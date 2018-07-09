@@ -1,5 +1,6 @@
 package main.client.rendering.geometry;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
@@ -41,6 +42,12 @@ public class ShaderDataLocations
             glVertexAttribPointer(inputLocation.index, inputLocation.size, GL_FLOAT, false, this.stride, inputLocation.offset);
     }
 
+    @Override
+    public String toString()
+    {
+        return "ShaderDataLocations{" + "stride=" + stride + ", inputs=" + (inputs == null ? null : Arrays.asList(inputs)) + ", outputs=" + (outputs == null ? null : Arrays.asList(outputs)) + ", vertexFormat='" + vertexFormat + '\'' + '}';
+    }
+
     public static ShaderDataLocations getDefaultDataLocations()
     {
         return new ShaderDataLocations(48, new InputLocation[]{
@@ -51,8 +58,8 @@ public class ShaderDataLocations
         }, new OutputLocation[]{
                 new OutputLocation("outDiffuse", 0),
                 new OutputLocation("outNormal", 1),
-                new OutputLocation("outPosition", 2),
-                new OutputLocation("outSpecular", 3),
+//                new OutputLocation("outPosition", 2),
+                new OutputLocation("outSpecular", 2),
         }, "pppnnnttcccc");
     }
 
@@ -64,6 +71,18 @@ public class ShaderDataLocations
         }, new OutputLocation[]{
                 new OutputLocation("outColour", 0),
         }, "ppptt");
+    }
+
+    public static ShaderDataLocations getShadowDataLocations()
+    {
+        return new ShaderDataLocations(48, new InputLocation[]{
+                new InputLocation("vertexPosition", 0, 3, 0),
+                new InputLocation("vertexNormal", 1, 3, 12),
+                new InputLocation("vertexTexture", 2, 2, 24),
+                new InputLocation("vertexColour", 3, 4, 32),
+        }, new OutputLocation[]{
+                new OutputLocation("outColour", 0),
+        }, "pppnnnttcccc");
     }
 
     public static class InputLocation

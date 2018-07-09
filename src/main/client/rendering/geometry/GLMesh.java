@@ -7,6 +7,7 @@ import java.nio.IntBuffer;
 import java.util.Objects;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.glDrawRangeElements;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.*;
 
@@ -176,6 +177,27 @@ public class GLMesh
         {
             if (indexCount > 0)
                 glDrawElements(GL_TRIANGLES, (int) indexCount, GL_UNSIGNED_INT, 0);
+            else
+                glDrawArrays(GL_TRIANGLES, 0, (int) vertexCount);
+        }
+
+        attributes.disableVertexAttributes();
+
+        glBindVertexArray(0);
+
+        return this;
+    }
+
+    public GLMesh draw(int startIndex, int endIndex)
+    {
+        glBindVertexArray(vertexArray);
+
+        attributes.enableVertexAttributes();
+
+        if (vertexCount > 0)
+        {
+            if (indexCount > 0)
+                glDrawRangeElements(GL_TRIANGLES, startIndex, endIndex, (int) indexCount, GL_UNSIGNED_INT, 0);
             else
                 glDrawArrays(GL_TRIANGLES, 0, (int) vertexCount);
         }

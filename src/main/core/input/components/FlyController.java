@@ -65,6 +65,7 @@ public class FlyController extends Component
     @Override
     public void render(double delta)
     {
+        this.moveSpeed = 1.0F;
         Engine.getInputHandler().addContext(this.inputContext);
         Matrix3f orientation = this.getOrientation(true);
 
@@ -84,6 +85,12 @@ public class FlyController extends Component
         }
 
         this.motion = new Vector3f();
+    }
+
+    @Override
+    public void render(double delta, ShaderProgram shaderProgram)
+    {
+
     }
 
     @Override

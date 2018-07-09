@@ -118,6 +118,22 @@ public class GameObject implements ITickable, IRenderable
     }
 
     @Override
+    public void render(double delta, ShaderProgram shaderProgram)
+    {
+        for (GameObject object : this.children.values())
+        {
+            if (object.doRender())
+                object.render(delta, shaderProgram);
+        }
+
+        for (Component component : this.components.values())
+        {
+            if (component.doRender())
+                component.render(delta, shaderProgram);
+        }
+    }
+
+    @Override
     public void dispose()
     {
         for (GameObject object : this.children.values())

@@ -1,9 +1,14 @@
 package main.client.rendering;
 
 import main.client.rendering.geometry.GLMesh;
+import main.client.rendering.geometry.Material;
 import main.client.rendering.geometry.MeshData;
 import main.core.Engine;
 import main.core.scene.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -12,20 +17,37 @@ import static org.lwjgl.opengl.GL11.*;
  */
 public class MeshRenderer extends Component
 {
-    private GLMesh mesh;
-    private ShaderProgram shader;
+    private Map<Material, GLMesh> mesh = new HashMap<>();
+    private ShaderProgram shader = null;
     private boolean enableDepth = true;
     private boolean enableBlend = true;
 
+    public MeshRenderer(GLMesh mesh, ShaderProgram shader, Material material)
+    {
+        this.mesh.put(material == null ? Material.NO_MATERIAL : material, mesh);
+        this.shader = shader;
+    }
+
     public MeshRenderer(GLMesh mesh, ShaderProgram shader)
     {
-        this.mesh = mesh;
+        this(mesh, shader, null);
+    }
+
+    public MeshRenderer(MeshData mesh, ShaderProgram shader, Material material)
+    {
+        this.mesh.put(material == null ? Material.NO_MATERIAL : material, new GLMesh(mesh, shader.getDataLocations()));
         this.shader = shader;
     }
 
     public MeshRenderer(MeshData mesh, ShaderProgram shader)
     {
-        this(new GLMesh(mesh, shader.getDataLocations()), shader);
+        this(mesh, shader, null);
+    }
+
+    public MeshRenderer(Map<Material, MeshData> meshMap, ShaderProgram shaderProgram)
+    {
+        meshMap.forEach((material, meshData) -> mesh.put(material, new GLMesh(meshData, shaderProgram.getDataLocations())));
+        this.shader = shaderProgram;
     }
 
     @Override
@@ -43,12 +65,16 @@ public class MeshRenderer extends Component
     @Override
     public void render(double delta)
     {
-        ShaderProgram shader = this.getShader();
+        render(delta, this.getShader());
+    }
 
-        if (shader != null && mesh != null)
+    @Override
+    public void render(double delta, ShaderProgram shaderProgram)
+    {
+        if (shaderProgram != null && mesh != null)
         {
-            ShaderProgram.bind(shader);
-            this.applyUniforms(shader);
+            ShaderProgram.bind(shaderProgram);
+            this.applyUniforms(shaderProgram);
 
             if (this.doEnableDepth())
                 glEnable(GL_DEPTH_TEST);
@@ -60,7 +86,15 @@ public class MeshRenderer extends Component
             else
                 glDisable(GL_BLEND);
 
-            this.mesh.draw();
+            mesh.forEach((material, glMesh) -> {
+                if (material != null)
+                {
+                    material.bind(shaderProgram);
+                    glMesh.draw();
+                    material.unbind();
+                    shaderProgram.setUniformBoolean("normalMap", false);
+                }
+            });
 
             ShaderProgram.bind(null);
         }
@@ -69,7 +103,7 @@ public class MeshRenderer extends Component
     @Override
     public void dispose()
     {
-        mesh.dispose();
+//        mesh.dispose();
     }
 
     @Override
@@ -79,11 +113,6 @@ public class MeshRenderer extends Component
 
         if (this.getParent() != null)
             this.getParent().applyUniforms(shaderProgram);
-    }
-
-    public GLMesh getMesh()
-    {
-        return mesh;
     }
 
     public ShaderProgram getShader()

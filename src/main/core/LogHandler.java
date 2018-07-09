@@ -46,7 +46,7 @@ public class LogHandler extends OutputStream
         try
         {
             ConsoleHandler consoleHandler = new ConsoleHandler();
-            consoleHandler.setFormatter(new LogFormatter(false, true));
+            consoleHandler.setFormatter(new LogFormatter(showSource, true));
             consoleHandler.setLevel(Level.FINEST);
             logger.addHandler(consoleHandler);
         } catch (Exception e)

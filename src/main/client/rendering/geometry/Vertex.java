@@ -16,6 +16,7 @@ public class Vertex
 {
     public static final int BYTES = 48;
 
+    int index;
     Vector3f position;
     Vector3f normal;
     Vector2f texture;

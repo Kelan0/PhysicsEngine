@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
 
 /**
  * @author Kelan
@@ -246,6 +247,7 @@ public class ClientThread extends TickableThread
         Engine.getGame().render(delta);
 
         FrameBuffer.unbind();
+
         screenRenderer.render(delta);
         return true;
     }

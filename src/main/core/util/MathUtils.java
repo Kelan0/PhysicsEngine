@@ -337,6 +337,42 @@ public class MathUtils
         return dest;
     }
 
+    public static Matrix3f setAxisMatrix3f(Vector3f x, Vector3f y, Vector3f z, Matrix3f dest)
+    {
+        if (dest == null)
+            dest = new Matrix3f();
+
+        dest.m00 = x.x;
+        dest.m01 = x.y;
+        dest.m02 = x.z;
+        dest.m10 = y.x;
+        dest.m11 = y.y;
+        dest.m12 = y.z;
+        dest.m20 = z.x;
+        dest.m21 = z.y;
+        dest.m22 = z.z;
+
+        return dest;
+    }
+
+    public static Matrix4f setAxisMatrix4f(Vector3f x, Vector3f y, Vector3f z, Matrix4f dest)
+    {
+        if (dest == null)
+            dest = new Matrix4f();
+
+        dest.m00 = x.x;
+        dest.m01 = x.y;
+        dest.m02 = x.z;
+        dest.m10 = y.x;
+        dest.m11 = y.y;
+        dest.m12 = y.z;
+        dest.m20 = z.x;
+        dest.m21 = z.y;
+        dest.m22 = z.z;
+
+        return dest;
+    }
+
     public static Matrix3f computeCovarianceMatrix(Vector3f... points)
     {
         if (points != null && points.length > 0)

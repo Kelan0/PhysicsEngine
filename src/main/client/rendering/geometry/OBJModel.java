@@ -1,21 +1,23 @@
 package main.client.rendering.geometry;
 
-import main.client.rendering.TextureLoader;
-import main.client.rendering.geometry.PolygonTriangulator.*;
+import main.client.rendering.Texture;
+import main.client.rendering.geometry.PolygonTriangulator.Triangle2D;
+import main.client.rendering.geometry.PolygonTriangulator.Vertex2D;
 import main.core.util.FileUtils;
 import main.core.util.MathUtils;
 import main.core.util.StringUtils;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 
@@ -33,13 +35,20 @@ public class OBJModel
     public static final String OBJ_MATERIAL_LIB = "mtllib ";
     public static final String OBJ_MATERIAL_USE = "usemtl ";
     public static final String MTL_DEFINITION = "newmtl ";
+    public static final String MTL_TRANSMISSION = "Tr ";
+    public static final String MTL_TRANSMISSION_FILTER = "Tf ";
+    public static final String MTL_OPTICAL_DENSITY = "Ni ";
     public static final String MTL_AMBIENT_COLOUR = "Ka ";
-    public static final String MTL_DEFUSE_OLOUR = "Kd ";
+    public static final String MTL_DEFUSE_COLOUR = "Kd ";
     public static final String MTL_SPECULAR_COLOUR = "Ks ";
-    public static final String MTL_SPECULAR_COEFFICIENT = "Ns ";
-    public static final String MTL_AMBIENT_TEXTURE = "map_Ka ";
-    public static final String MTL_DEFUSE_TEXTURE = "map_Kd ";
-    public static final String MTL_SPECULAR_TEXTURE = "map_Ks ";
+    public static final String MTL_SPECULAR_POWER = "Ns ";
+    public static final String MTL_AMBIENT_COLOUR_TEXTURE = "map_Ka ";
+    public static final String MTL_DEFUSE_COLOUR_TEXTURE = "map_Kd ";
+    public static final String MTL_SPECULAR_COLOUR_TEXTURE = "map_Ks ";
+    public static final String MTL_SPECULAR_POWER_TEXTURE = "map_Ns ";
+    public static final String MTL_DISPLACEMENT_TEXTURE = "map_bump ";
+    public static final String MTL_NORMAL_TEXTURE = "map_norm ";
+    public static final String MTL_DISSOLVE_TEXTURE = "map_d "; // an alpha map.
     public static final String MTL_TEXTURE_BLEND_U = "-blendu ";
     public static final String MTL_TEXTURE_BLEND_V = "-blendv ";
     public static final String MTL_TEXTURE_COLOUR_CORRECTION = "-cc ";
@@ -48,6 +57,7 @@ public class OBJModel
     public static final String MTL_TEXTURE_BRIGHTNESS_CONTRAST = "-mm ";
     public static final String MTL_TEXTURE_OFFSET = "-o ";
     public static final String MTL_TEXTURE_SCALE = "-s ";
+    public static final String MTL_TEXTURE_BUMP_SCALE = "-bm ";
     public static final String MTL_TEXTURE_TURBULENCE = "-getHead ";
     public static final String MTL_TEXTURE_RESOLUTION = "-texres ";
 
@@ -60,14 +70,11 @@ public class OBJModel
 
     public static OBJModel parseObj(String file) throws IOException
     {
-        System.out.println("Loading OBJ filePath " + file);
+        System.out.println("Loading OBJ file " + file);
         StringBuilder sb = new StringBuilder();
 
         if (FileUtils.readFile(file, sb) && sb.length() > 0)
         {
-//            MeshBuilder meshBuilder = new MeshBuilder();
-
-            File f = new File(file);
             String[] fileSource = sb.toString().split("\n");
 
             List<Vector3f> geometrics = new ArrayList<>();
@@ -85,27 +92,20 @@ public class OBJModel
             for (String line : fileSource)
             {
                 counter++;
-                if (line == null || line.isEmpty() || line.startsWith(COMMENT_LINE))
+                if (line == null || (line = line.trim()).isEmpty() || line.startsWith(COMMENT_LINE))
                 {
-                    if (line == null || line.isEmpty())
-                    {
-                        continue;
-//                        System.err.println("Invalid line in OBJ file, skipping");
-                    } else if (line.startsWith(COMMENT_LINE))
-                    {
-                        System.out.println(line.substring(COMMENT_LINE.length())); // Print comments for debugging.
-                    }
+                    continue;
                 } else if (line.startsWith(OBJ_VERTEX_GEOMETRIC))
                 {
-                    line = line.substring(OBJ_VERTEX_GEOMETRIC.length());
+                    line = line.substring(OBJ_VERTEX_GEOMETRIC.length()).trim();
                     geometrics.add(readVector3f(line, new Vector3f(0.0F, 0.0F, 0.0F)));
                 } else if (line.startsWith(OBJ_VERTEX_NORMAL))
                 {
-                    line = line.substring(OBJ_VERTEX_NORMAL.length());
+                    line = line.substring(OBJ_VERTEX_NORMAL.length()).trim();
                     normals.add(readVector3f(line, new Vector3f(0.0F, 0.0F, 0.0F)));
                 } else if (line.startsWith(OBJ_VERTEX_TEXTURE))
                 {
-                    line = line.substring(OBJ_VERTEX_TEXTURE.length());
+                    line = line.substring(OBJ_VERTEX_TEXTURE.length()).trim();
                     textures.add(readVector2f(line, new Vector2f(0.0F, 0.0F)));
                 } else if (line.startsWith(OBJ_FACE_INDEX))
                 {
@@ -119,7 +119,7 @@ public class OBJModel
 
                     if (i == 0)
                     {
-                        System.err.println("Failed to load face indices \"" + line + "\" from OBJ. This may cause errors.");
+                        System.err.println("Failed to load face indices \"" + line + "\" from OBJ.");
                         continue;
                     }
 
@@ -128,29 +128,21 @@ public class OBJModel
                         Vertex[] vertices = new Vertex[data.length];
 
                         for (int j = 0; j < data.length; j++)
-                        {
                             vertices[j] = new Vertex(geometrics.get(indicesArr[pointer++]));
-                        }
 
                         if (i >= 2)
                         {
                             if (i >= 3)
                             {
                                 for (int j = 0; j < data.length; j++)
-                                {
                                     vertices[j].texture = textures.get(indicesArr[pointer++]);
-                                }
 
                                 for (int j = 0; j < data.length; j++)
-                                {
                                     vertices[j].normal = normals.get(indicesArr[pointer++]);
-                                }
                             } else
                             {
                                 for (int j = 0; j < data.length; j++)
-                                {
                                     vertices[j].normal = normals.get(indicesArr[pointer++]);
-                                }
                             }
                         }
 
@@ -159,15 +151,12 @@ public class OBJModel
                 } else if (line.startsWith(OBJ_MATERIAL_LIB))
                 {
                     line = line.substring(OBJ_MATERIAL_LIB.length());
-                    String mtlStr = readString(line, INVALID_VALUE); // default value padded with null characters incase someone decides to name an MTL filePath "INVALID_MTL" for some reason.
+                    String mtlStr = readString(line, INVALID_VALUE); // default value padded with null characters in case someone decides to name an MTL filePath "INVALID_MTL" for some reason.
 
                     if (!mtlStr.endsWith(INVALID_VALUE) && mtlStr.endsWith(".mtl"))
-                    {
-//                        materials.addAll(parseMtl(f.getParentFile() + File.separator + mtlStr));
-                    } else
-                    {
+                        materials.addAll(parseMtl(new File(file).getParentFile() + File.separator + mtlStr));
+                    else
                         System.err.println("Line \"" + line + "\" specifying an MTL filePath was not valid");
-                    }
                 } else if (line.startsWith(OBJ_MATERIAL_USE))
                 {
                     line = line.substring(OBJ_MATERIAL_USE.length());
@@ -200,19 +189,20 @@ public class OBJModel
 
     public static List<Material> parseMtl(String file) throws IOException
     {
-        System.out.println("Loading MTL filePath " + file);
+        System.out.println("Loading MTL file " + file);
         List<Material> materials = new ArrayList<>();
 
         StringBuilder sb = new StringBuilder();
         if (FileUtils.readFile(file, sb) && sb.length() > 0)
         {
-            File f = new File(file);
             String[] fileSource = sb.toString().split("\n");
             Material currentMaterial = null;
 
             for (String line : fileSource)
             {
-                // TODO: filter comment lines.
+                if (line == null || (line = line.trim()).isEmpty() || line.startsWith(COMMENT_LINE))
+                    continue;
+
                 if (line.startsWith(MTL_DEFINITION))
                 {
                     line = line.substring(MTL_DEFINITION.length());
@@ -226,40 +216,48 @@ public class OBJModel
 
                 if (currentMaterial != null)
                 {
-                    if (line.startsWith(MTL_AMBIENT_COLOUR))
+                    if (line.startsWith(MTL_TRANSMISSION))
                     {
-                        line = line.substring(MTL_AMBIENT_COLOUR.length());
-                        currentMaterial.ambientColour = readVector3f(line, currentMaterial.ambientColour);
-                    } else if (line.startsWith(MTL_DEFUSE_OLOUR))
+                        currentMaterial.transmission = readFloat(line.substring(MTL_TRANSMISSION.length()).trim(), currentMaterial.transmission);
+                    } else if (line.startsWith(MTL_TRANSMISSION_FILTER))
                     {
-                        line = line.substring(MTL_DEFUSE_OLOUR.length());
-                        currentMaterial.diffuseColour = readVector3f(line, currentMaterial.diffuseColour);
+                        currentMaterial.transmissionFilter = readVector3f(line.substring(MTL_TRANSMISSION_FILTER.length()).trim(), currentMaterial.transmissionFilter);
+                    } else if (line.startsWith(MTL_OPTICAL_DENSITY))
+                    {
+                        currentMaterial.opticalDensity = readFloat(line.substring(MTL_OPTICAL_DENSITY.length()).trim(), currentMaterial.opticalDensity);
+                    } else if (line.startsWith(MTL_AMBIENT_COLOUR))
+                    {
+                        currentMaterial.ambientColour = readVector3f(line.substring(MTL_AMBIENT_COLOUR.length()).trim(), currentMaterial.ambientColour);
+                    } else if (line.startsWith(MTL_DEFUSE_COLOUR))
+                    {
+                        currentMaterial.diffuseColour = readVector3f(line.substring(MTL_DEFUSE_COLOUR.length()).trim(), currentMaterial.diffuseColour);
                     } else if (line.startsWith(MTL_SPECULAR_COLOUR))
                     {
-                        line = line.substring(MTL_SPECULAR_COLOUR.length());
-                        Vector3f specularColour = readVector3f(line, new Vector3f(currentMaterial.specularColour));
-
-                        currentMaterial.specularColour = new Vector4f(specularColour.x, specularColour.y, specularColour.z, 1.0F);
-                    } else if (line.startsWith(MTL_SPECULAR_COEFFICIENT))
+                        currentMaterial.specularColour = readVector3f(line.substring(MTL_SPECULAR_COLOUR.length()).trim(), currentMaterial.specularColour);
+                    } else if (line.startsWith(MTL_SPECULAR_POWER))
                     {
-                        line = line.substring(MTL_SPECULAR_COEFFICIENT.length());
-                        currentMaterial.specularColour.w = readFloat(line, currentMaterial.specularColour.w);
-                    } else if (line.startsWith(MTL_AMBIENT_TEXTURE))
+                        currentMaterial.specularPower = readFloat(line.substring(MTL_SPECULAR_POWER.length()).trim(), currentMaterial.specularPower);
+                    } else if (line.startsWith(MTL_AMBIENT_COLOUR_TEXTURE))
                     {
-                        line = line.substring(MTL_AMBIENT_TEXTURE.length());
-                        TextureLoader texture = readTextureMap(line);
-                        texture.setFilePath(f.getParentFile() + File.separator + texture.filePath);
-//                        currentMaterial.ambientTexture = texture.loadTexture(); // TODO
-                    } else if (line.startsWith(MTL_DEFUSE_TEXTURE))
+                        currentMaterial.ambientColourTexture = readTextureMap(line.substring(MTL_AMBIENT_COLOUR_TEXTURE.length()).trim(), file);
+                    } else if (line.startsWith(MTL_DEFUSE_COLOUR_TEXTURE))
                     {
-                        TextureLoader texture = readTextureMap(line);
-                        texture.setFilePath(f.getParentFile() + File.separator + texture.filePath);
-//                        currentMaterial.diffuseTexture = texture.loadTexture(); // TODO
-                    } else if (line.startsWith(MTL_SPECULAR_TEXTURE))
+                        currentMaterial.diffuseColourTexture = readTextureMap(line.substring(MTL_DEFUSE_COLOUR_TEXTURE.length()).trim(), file);
+                    } else if (line.startsWith(MTL_SPECULAR_COLOUR_TEXTURE))
                     {
-                        TextureLoader texture = readTextureMap(line);
-                        texture.setFilePath(f.getParentFile() + File.separator + texture.filePath);
-//                        currentMaterial.specularTexture = texture.loadTexture(); // TODO
+                        currentMaterial.specularColourTexture = readTextureMap(line.substring(MTL_SPECULAR_COLOUR_TEXTURE.length()).trim(), file);
+                    } else if (line.startsWith(MTL_SPECULAR_POWER_TEXTURE))
+                    {
+                        currentMaterial.specularPowerTexture = readTextureMap(line.substring(MTL_SPECULAR_POWER_TEXTURE.length()).trim(), file);
+                    } else if (line.startsWith(MTL_DISPLACEMENT_TEXTURE))
+                    {
+                        currentMaterial.displacementTexture = readTextureMap(line.substring(MTL_DISPLACEMENT_TEXTURE.length()).trim(), file);
+                    }else if (line.startsWith(MTL_NORMAL_TEXTURE))
+                    {
+                        currentMaterial.normalTexture = readTextureMap(line.substring(MTL_NORMAL_TEXTURE.length()).trim(), file);
+                    } else if (line.startsWith(MTL_DISSOLVE_TEXTURE))
+                    {
+                        currentMaterial.alphaTexture = readTextureMap(line.substring(MTL_DISSOLVE_TEXTURE.length()).trim(), file);
                     }
                 }
             }
@@ -276,9 +274,10 @@ public class OBJModel
         return materials;
     }
 
-    private static TextureLoader readTextureMap(String line)
+    private static Texture readTextureMap(String line, String file)
     {
-        TextureLoader loader = new TextureLoader();
+        System.out.println("Reading texture map: " + line);
+        Texture loader = new Texture();
 
         /*
         Sources that this code is based on. Most of this is translated from C++ code.
@@ -319,6 +318,9 @@ public class OBJModel
             } else if (temp.startsWith(MTL_TEXTURE_SCALE))
             {
                 loader.scale = readVector3f(temp.substring(MTL_TEXTURE_SCALE.length()), new Vector3f(1.0F, 1.0F, 1.0F));
+            }  else if (temp.startsWith(MTL_TEXTURE_BUMP_SCALE))
+            {
+                loader.bumpScale = readFloat(temp.substring(MTL_TEXTURE_BUMP_SCALE.length()), 0.0F);
             } else if (temp.startsWith(MTL_TEXTURE_TURBULENCE))
             {
                 loader.turbulence = readVector3f(temp.substring(MTL_TEXTURE_TURBULENCE.length()), new Vector3f(0.0F, 0.0F, 0.0F));
@@ -329,7 +331,7 @@ public class OBJModel
         }
 
         String[] values = line.split(" ");
-        loader.filePath = values[values.length - 1]; //Assuming filePath is always at the end of the line, and it contains no spaces.
+        loader.filePath = new File(file).getParentFile() + File.separator + values[values.length - 1];
 
         return loader;
     }
@@ -362,9 +364,7 @@ public class OBJModel
         int numVertices = data.length;
 
         if (indices.length < maxIndex * numVertices)
-        {
             return 0;
-        }
 
         String[][] vertices = new String[data.length][];
 
@@ -375,12 +375,9 @@ public class OBJModel
             vertices[i] = data[i].split("/");
 
             if (lengthCheck == -1)
-            {
                 lengthCheck = vertices[i].length;
-            } else if (vertices[i].length != lengthCheck)
-            {
+            else if (vertices[i].length != lengthCheck)
                 return 0;
-            }
         }
 
         int pointer = 0;
@@ -433,6 +430,7 @@ public class OBJModel
     private static Vector2f readVector2f(String line, Vector2f defaultValue)
     {
         String[] data = line.split(" ");
+
         float x = StringUtils.isFloat(data[0]) ? Float.parseFloat(data[0]) : defaultValue.x;
         float y = StringUtils.isFloat(data[1]) ? Float.parseFloat(data[1]) : defaultValue.y;
 
@@ -442,6 +440,7 @@ public class OBJModel
     private static Vector3f readVector3f(String line, Vector3f defaultValue)
     {
         String[] data = line.split(" ");
+
         float x = StringUtils.isFloat(data[0]) ? Float.parseFloat(data[0]) : defaultValue.x;
         float y = StringUtils.isFloat(data[1]) ? Float.parseFloat(data[1]) : defaultValue.y;
         float z = StringUtils.isFloat(data[2]) ? Float.parseFloat(data[2]) : defaultValue.z;
@@ -462,7 +461,7 @@ public class OBJModel
 
         for (OBJFace face : this.faces)
         {
-            face.triangulate(triangles, false);
+            face.triangulate(triangles, true);
         }
 
         this.faces = triangles;
@@ -470,13 +469,8 @@ public class OBJModel
 
     public MeshData compileMesh()
     {
-        return this.compileMesh(ShaderDataLocations.getDefaultDataLocations());
-    }
-
-    public MeshData compileMesh(ShaderDataLocations attributes)
-    {
-        System.out.println("Compiling mesh\nTriangulating");
-        this.triangulate();
+        System.out.println("Triangulating");
+        triangulate();
 
         System.out.println("Compiling mesh");
         List<Vertex> vertices = new ArrayList<>();
@@ -490,25 +484,8 @@ public class OBJModel
 
                 if (vertex != null)
                 {
-                    boolean flag = true;
-//                    for (int j = 0; j < vertices.size(); ++j)
-//                    {
-//                        Vertex v = vertices.get(j);
-//                        if (v == null)
-//                        {
-//                            vertices.remove(j);
-//                        } else if (v.equals(vertex))
-//                        {
-//                            flag = false;
-//                            indices.add(j);
-//                        }
-//                    }
-
-                    if (flag)
-                    {
-                        indices.add(vertices.size());
-                        vertices.add(vertex);
-                    }
+                    indices.add(vertices.size());
+                    vertices.add(vertex);
                 }
             }
         }
@@ -516,6 +493,38 @@ public class OBJModel
         System.out.println("Done");
 
         return new MeshData(vertices, indices);
+    }
+
+    public Map<Material, MeshData> compileMeshWithMaterials()
+    {
+        System.out.println("Triangulating");
+        triangulate();
+
+        System.out.println("Compiling mesh");
+
+        Map<Material, MeshData> materialMap = new HashMap<>();
+
+        for (OBJFace face : this.faces)
+        {
+            MeshData meshData = materialMap.computeIfAbsent(face.material, material -> new MeshData());
+            List<Vertex> vertices = meshData.getVertices();
+            List<Integer> indices = meshData.getIndices();
+
+            for (int i = 0; i < 3; i++)
+            {
+                Vertex vertex = face.vertices[i];
+
+                if (vertex != null)
+                {
+                    indices.add(vertices.size());
+                    vertices.add(vertex);
+                }
+            }
+        }
+
+        System.out.println("Done");
+
+        return materialMap;
     }
 
     public static class OBJFace
@@ -596,9 +605,7 @@ public class OBJModel
                             // This vector is the direction of least variance, and so will be the normal of a plane that will cause the least distortion to the polygon,
                             // although, if a polygon overlaps itself, it may cause undefined behaviour.
                             for (int i = 0; i < 200; i++)
-                            {
                                 Matrix3f.transform(covarianceMatrix, planeNormal, planeNormal).normalise();
-                            }
                         } else
                         {
                             // These vertices all lie on the same plane, and thus the inverse of the covariance matrix cannot be computed.
@@ -609,8 +616,15 @@ public class OBJModel
                             planeNormal = Vector3f.cross(e0, e1, null).normalise(null);
                         }
 
-                        Vector3f u = (Vector3f) Vector3f.cross(planeNormal, new Vector3f(0.0F, 1.0F, 0.0F), null).normalise(); // The x-axis of the plane.
-                        Vector3f v = (Vector3f) Vector3f.cross(planeNormal, u, null).normalise(); // The y-axis of the plane.
+                        // The x-axis of the plane.
+                        Vector3f w = Math.abs(planeNormal.x) != 1.0F ? new Vector3f(1.0F, 0.0F, 0.0F) : Math.abs(planeNormal.y) != 1.0F ? new Vector3f(0.0F, 1.0F, 0.0F) : Math.abs(planeNormal.z) != 1.0F ? new Vector3f(0.0F, 0.0F, 1.0F) : new Vector3f(1.0F, 1.0F, 1.0F).normalise(null);
+                        Vector3f u = (Vector3f) Vector3f.cross(planeNormal, w, null);
+                        Vector3f v = (Vector3f) Vector3f.cross(planeNormal, u, null); // The y-axis of the plane.
+
+                        if (u.lengthSquared() == 0.0F)
+                            System.out.println(planeNormal + " x " + w);
+                        u.normalise(u);
+                        v.normalise(v);
 
                         for (int i = 0; i < this.vertices.length; i++)
                         {

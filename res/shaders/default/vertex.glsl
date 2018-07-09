@@ -9,21 +9,21 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
-out vec3 p_vertexPosition;
-out vec3 p_vertexNormal;
-out vec2 p_vertexTexture;
-out vec4 p_vertexColour;
-out vec4 p_worldPosition;
+out vec3 p0_vertexPosition;
+out vec3 p0_vertexNormal;
+out vec2 p0_vertexTexture;
+out vec4 p0_vertexColour;
+out vec4 p0_worldPosition;
 
 void main(void)
 {
     vec4 worldPosition = modelMatrix * vec4(vertexPosition, 1.0);
 
-    p_vertexPosition = vertexPosition;
-    p_vertexNormal = (modelMatrix * vec4(vertexNormal, 0.0)).xyz;
-    p_vertexTexture = vertexTexture;
-    p_vertexColour = vertexColour;
-    p_worldPosition = worldPosition;
+    p0_vertexPosition = vertexPosition;
+    p0_vertexNormal = vertexNormal;
+    p0_vertexTexture = vertexTexture;
+    p0_vertexColour = vertexColour;
+    p0_worldPosition = worldPosition;
 
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }
